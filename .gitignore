@@ -1,0 +1,6 @@
+.vscode/
+build/
+tests/
+CMakePresets.json
+CMakeLists.txt
+
