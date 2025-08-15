@@ -3,10 +3,10 @@
 // #define MINIMLP_IMPLEMENTATION // DEVELOPMENT
 // #define MINIMLP_NO_REQUIRE // DEVELOPMENT
 // #define MINIMLP_AT_NO_BOUNDS_CHECK // DEVELOPMENT
-#include <cstddef>
 #ifdef MINIMLP_IMPLEMENTATION
 #endif
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
 
 namespace mlp {
 
@@ -24,7 +25,11 @@ using u32_t = std::uint32_t;
 using u64_t = std::uint64_t;
 
 /**
-    TODO: Finish Tensor API. Test at() methods first and foremost.
+    TODO:
+    Finish Tensor API.
+    Finish Multiplication and Tensor contraction.
+    Test at() methods first and foremost.
+    Document everything before moving on.
 */
 
 namespace {
@@ -76,7 +81,7 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
             _strideUnits[i] = _strideUnits[i + 1] * dims[i + 1];
         }
     }
-    Tensor<T> defaultOrder() {
+    std::vector<u32_t> defaultOrder() {
         std::vector<u32_t> nlOrder(_data.size());
         for (std::size_t i{_data.size()}, j{}; i-- > 0; ++j) {
             nlOrder[j] = i;
@@ -141,8 +146,11 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         return out;
     }
     Tensor<T> operator*(const Tensor<T> &rhs) {
-        require(_dimensions.size() < 3 && rhs._dimensions.size() < 3, Error::TENSOR_UNDEFINED_MULTIPLICATION);
-        require(_dimensions.size() < 3 && rhs._dimensions.size() < 3, Error::TENSOR_MISMATCHED_DIMENSIONS);
+        // This is because a vector is just a matrix with some dimension of 1.
+        require(_dimensions.size() == 2 && rhs._dimensions.size() == 2, Error::TENSOR_UNDEFINED_MULTIPLICATION);
+        require(_dimensions[1] == rhs._dimensions[0], Error::TENSOR_MISMATCHED_DIMENSIONS);
+
+
 
         /// TODO: Matrix multiplication.
     }
@@ -179,6 +187,10 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
         return out;
     }
+    /*
+        Transposition is fundamentally just a permutation of the dimensions. This is a general
+        transposition function that works for N-dimensions.
+    */
     void transpose(const std::vector<u32_t> &order = {}, const bool materialize = false) {
         const std::vector<u32_t> nOrder{order.empty() ? defaultOrder() : order};
         require(nOrder.size() == _dimensions.size(), Error::TENSOR_MISMATCHED_DIMENSIONS);
@@ -207,7 +219,7 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         const std::vector<u32_t> oStride{_strideUnits};
         const std::size_t dims{_dimensions.size()};
         const std::size_t iters{_data.size()};
-        
+
         _dimensions = std::move(nDims);
         getStride(_dimensions);
 
