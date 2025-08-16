@@ -1,8 +1,6 @@
 #pragma once
 
-// #define MINIMLP_IMPLEMENTATION // DEVELOPMENT
 // #define MINIMLP_NO_REQUIRE // DEVELOPMENT
-// #define MINIMLP_AT_NO_BOUNDS_CHECK // DEVELOPMENT
 #ifdef MINIMLP_IMPLEMENTATION
 #endif
 
@@ -14,7 +12,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
 
 namespace mlp {
 
@@ -38,16 +35,17 @@ enum class Error : u16_t {
     TENSOR_0_DIMENSIONS,
     TENSOR_MISMATCHED_DIMENSIONS,
     TENSOR_UNDEFINED_MULTIPLICATION,
-    TENSOR_INVALID_DIMENSIONS
+    TENSOR_INVALID_DIMENSIONS,
+    TENSOR_FEATURE_NOT_IMPLEMENTED
 };
 constexpr const char *getMessage(Error e) {
     return [&] {
         switch (e) {
         case Error::TENSOR_0_DIMENSIONS: return "Tensors with a dimension count of 0 is invalid.";
         case Error::TENSOR_MISMATCHED_DIMENSIONS: return "Tensor operation invalid because of mismatched dimensions.";
-        case Error::TENSOR_UNDEFINED_MULTIPLICATION:
-            return "Tensor operation invalid for (*) overload beyond 2 dimensions.";
+        case Error::TENSOR_UNDEFINED_MULTIPLICATION: return "Tensor operation invalid for (*) overload beyond 2 dimensions.";
         case Error::TENSOR_INVALID_DIMENSIONS: return "Invalid tensor dimensions.";
+        case Error::TENSOR_FEATURE_NOT_IMPLEMENTED: return "Feature is not implemented";
         }
     }();
 }
@@ -82,8 +80,8 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
     }
     std::vector<u32_t> defaultOrder() {
-        std::vector<u32_t> nlOrder(_data.size());
-        for (std::size_t i{_data.size()}, j{}; i-- > 0; ++j) {
+        std::vector<u32_t> nlOrder(_dimensions.size());
+        for (std::size_t i{_dimensions.size()}, j{}; i-- > 0; ++j) {
             nlOrder[j] = i;
         }
         return nlOrder;
@@ -145,16 +143,23 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
         return out;
     }
-    Tensor<T> operator*(const Tensor<T> &rhs) {
+    Tensor<T> operator*(const Tensor<T> &rhs) const {
         // This is because a vector is just a matrix with some dimension of 1.
         require(_dimensions.size() == 2 && rhs._dimensions.size() == 2, Error::TENSOR_UNDEFINED_MULTIPLICATION);
+
+        // Input dimensions of A must match Output dimensions of B in (C = A * B).
         require(_dimensions[1] == rhs._dimensions[0], Error::TENSOR_MISMATCHED_DIMENSIONS);
-
-
-
-        /// TODO: Matrix multiplication.
+        Tensor<T> out{{_dimensions[0], rhs._dimensions[1]}};
+        for (std::size_t y{0}; y < out._dimensions[0]; ++y) {
+            for (std::size_t x{0}; x < out._dimensions[1]; ++x) {
+                for (std::size_t i{0}; i < _dimensions[1]; ++i) {
+                    out.at(y, x) += this->at(y, i) * rhs.at(i, x);
+                }
+            }
+        }
+        return out;
     }
-    Tensor<T> operator*(const T scalar) {
+    Tensor<T> operator*(const T scalar) const {
         std::size_t iters{_data.size()};
         Tensor<T> out{_dimensions};
         for (std::size_t i{0}; i < iters; ++i) {
@@ -162,7 +167,7 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
         return out;
     }
-    Tensor<T> operator/(const Tensor<T> &rhs) {
+    Tensor<T> operator/(const Tensor<T> &rhs) const {
         std::size_t iters{_data.size()};
         Tensor<T> out{_dimensions};
         for (std::size_t i{0}; i < iters; ++i) {
@@ -170,7 +175,7 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
         return out;
     }
-    Tensor<T> operator/(const T scalar) {
+    Tensor<T> operator/(const T scalar) const {
         std::size_t iters{_data.size()};
         Tensor<T> out{_dimensions};
         for (std::size_t i{0}; i < iters; ++i) {
@@ -178,7 +183,7 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
         return out;
     }
-    Tensor<T> hadamard(const Tensor<T> &rhs) {
+    Tensor<T> hadamard(const Tensor<T> &rhs) const {
         require(_dimensions == rhs._dimensions, Error::TENSOR_MISMATCHED_DIMENSIONS);
         Tensor<T> out{_dimensions};
         const std::size_t iters{_data.size()};
@@ -219,10 +224,8 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         const std::vector<u32_t> oStride{_strideUnits};
         const std::size_t dims{_dimensions.size()};
         const std::size_t iters{_data.size()};
-
         _dimensions = std::move(nDims);
         getStride(_dimensions);
-
         std::vector<u32_t> dimIdx(dims, 0);
         std::vector<u32_t> nDimIdx(dims, 0);
         std::vector<T> data(iters);
@@ -257,7 +260,15 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         return out;
     }
     Tensor<T> contract(const Tensor<T> &rhs, const std::vector<u32_t> &axesA, const std::vector<u32_t> &axesB) const {
-        /// TODO: Need to brush up on theory. What even is an Einstein-sum.
+        /*
+            The general case that matrix multiplication derives from. 
+            For now this is postponed, and might be implemented in the near
+            future should it be required, as the matrix multiplication case 
+            (implemented as the overload for the * operator on tensors) already 
+            covers a significant amount of use cases, and also its just 
+            really hard. 
+        */
+        require(false, Error::TENSOR_FEATURE_NOT_IMPLEMENTED);
     }
 };
 
