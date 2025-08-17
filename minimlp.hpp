@@ -183,6 +183,22 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         }
         return out;
     }
+    /**
+        TODO: Implement broadcasting, and these additional operators.
+    */
+    Tensor<T>& operator+=(const Tensor<T>& rhs) {
+        return *this;
+    }
+    Tensor<T>& operator-=(const Tensor<T>& rhs) {
+        return *this;
+    }
+    Tensor<T>& operator*=(const Tensor<T>& rhs) {
+        return *this;
+    }
+    Tensor<T>& operator/=(const Tensor<T>& rhs) {
+        return *this;
+
+    }
     Tensor<T> hadamard(const Tensor<T> &rhs) const {
         require(_dimensions == rhs._dimensions, Error::TENSOR_MISMATCHED_DIMENSIONS);
         Tensor<T> out{_dimensions};
@@ -239,7 +255,6 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
                     taken according to the new order.
                 */
                 nDimIdx[j] = dimIdx[nOrder[j]];
-
                 oFIdx += dimIdx[j] * oStride[j];
                 nFIdx += nDimIdx[j] * _strideUnits[j];
             }
@@ -270,6 +285,14 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>> clas
         */
         require(false, Error::TENSOR_FEATURE_NOT_IMPLEMENTED);
     }
+    T mean(const std::vector<u32_t>& axes) const {
+
+    }
+    T sum(const std::vector<u32_t>& axes) const {
+
+    }
+
+
 };
 
 /**
